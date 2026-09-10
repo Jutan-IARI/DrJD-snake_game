@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Snake Game by Dr. Juton Das</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#243447,#080b0f 70%);color:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center}.game{width:min(94vw,650px);text-align:center}h1{margin:8px 0 12px;font-size:28px;text-shadow:0 2px 8px #000}.top{display:flex;justify-content:space-between;background:#18232d;padding:12px 16px;border-radius:14px;margin-bottom:10px;font-weight:bold}canvas{width:100%;max-width:600px;aspect-ratio:1;display:block;margin:auto;background:#071009;border-radius:16px;box-shadow:0 8px 30px #000;touch-action:none}.controls{margin:14px auto 0;display:grid;grid-template-columns:repeat(3,78px);gap:8px;justify-content:center}button{border:0;border-radius:12px;background:#263746;color:#fff;font-weight:bold;padding:14px;cursor:pointer}.empty{visibility:hidden}.actions{margin-top:10px;display:flex;gap:8px;justify-content:center}.actions button{padding:10px 20px}#message{min-height:25px;margin-top:8px;color:#ffd43b;font-weight:bold}
+</style></head>
+<body><div class="game">
+<h1>🐍 Snake Game by Dr. Juton Das</h1>
+<div class="top"><span>Score: <b id="score">0</b></span><span id="bonus"></span></div>
+<canvas id="game" width="600" height="600"></canvas><div id="message"></div>
+<div class="controls">
+<button class="empty">.</button><button onclick="setDir(0,-1)">▲</button><button class="empty">.</button>
+<button onclick="setDir(-1,0)">◀</button><button onclick="togglePause()">⏸</button><button onclick="setDir(1,0)">▶</button>
+<button class="empty">.</button><button onclick="setDir(0,1)">▼</button><button class="empty">.</button>
+</div><div class="actions"><button onclick="restart()">Restart</button><button onclick="togglePause()" id="pauseBtn">Pause</button></div>
+</div>
+<script>
+const c=document.getElementById("game"),ctx=c.getContext("2d"),N=30,S=c.width/N;
+let snake,dir,nextDir,frog,rat,score,count,ratActive,ratUntil,paused,over,timer;
+function pos(){return{x:Math.floor(Math.random()*N)*S,y:Math.floor(Math.random()*N)*S}}
+function empty(){let p;do{p=pos()}while(snake.some(s=>s.x===p.x&&s.y===p.y)||(ratActive&&rat&&rat.x===p.x&&rat.y===p.y));return p}
+function restart(){snake=[];for(let i=0;i<5;i++)snake.push({x:300-i*S,y:300});dir={x:1,y:0};nextDir={x:1,y:0};score=0;count=0;ratActive=false;ratUntil=0;paused=false;over=false;frog=empty();document.getElementById("message").textContent="";document.getElementById("pauseBtn").textContent="Pause";clearInterval(timer);timer=setInterval(loop,150);ui();draw()}
+function setDir(x,y){if(over)return;if(x===-dir.x&&y===-dir.y)return;nextDir={x,y}}
+function togglePause(){if(over)return;paused=!paused;document.getElementById("pauseBtn").textContent=paused?"Play":"Pause"}
+function loop(){if(paused||over)return;dir=nextDir;let h={x:snake[0].x+dir.x*S,y:snake[0].y+dir.y*S};if(h.x<0)h.x=c.width-S;if(h.x>=c.width)h.x=0;if(h.y<0)h.y=c.height-S;if(h.y>=c.height)h.y=0;if(snake.some(s=>s.x===h.x&&s.y===h.y)){over=true;clearInterval(timer);document.getElementById("message").textContent="GAME OVER — Press Restart";draw();return}snake.unshift(h);
+if(h.x===frog.x&&h.y===frog.y){score+=10;count++;frog=empty();if(count===5&&!ratActive){rat=empty();ratActive=true;ratUntil=Date.now()+5000;count=0}}else if(ratActive&&h.x===rat.x&&h.y===rat.y){score+=5;ratActive=false}else snake.pop();
+if(ratActive&&Date.now()>=ratUntil)ratActive=false;ui();draw()}
+function ui(){document.getElementById("score").textContent=score;document.getElementById("bonus").textContent=ratActive?"🐀 BONUS RAT: "+Math.ceil(Math.max(0,ratUntil-Date.now())/1000)+"s":""}
+function draw(){ctx.fillStyle="#071009";ctx.fillRect(0,0,c.width,c.height);ctx.strokeStyle="#142219";for(let i=0;i<=c.width;i+=S){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,c.height);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(c.width,i);ctx.stroke()}frogDraw(frog.x,frog.y);if(ratActive)ratDraw(rat.x,rat.y);for(let i=snake.length-1;i>=0;i--)i?body(snake[i],i):head(snake[i])}
+function body(p,i){ctx.fillStyle=i%2?"#249b3d":"#31b84a";ctx.beginPath();ctx.roundRect(p.x+2,p.y+2,S-4,S-4,8);ctx.fill();ctx.fillStyle="#73e687";ctx.beginPath();ctx.arc(p.x+7,p.y+6,2,0,7);ctx.fill()}
+function head(p){let x=p.x,y=p.y;ctx.fillStyle="#49d65e";ctx.beginPath();ctx.roundRect(x,y,S,S,9);ctx.fill();let a,b;if(dir.x>0){a=[x+14,y+6];b=[x+14,y+14]}else if(dir.x<0){a=[x+6,y+6];b=[x+6,y+14]}else if(dir.y<0){a=[x+6,y+6];b=[x+14,y+6]}else{a=[x+6,y+14];b=[x+14,y+14]}ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(...a,3,0,7);ctx.arc(...b,3,0,7);ctx.fill();ctx.fillStyle="#111";ctx.beginPath();ctx.arc(...a,1.5,0,7);ctx.arc(...b,1.5,0,7);ctx.fill();ctx.strokeStyle="#ff5264";ctx.lineWidth=2;ctx.beginPath();if(dir.x>0){ctx.moveTo(x+S,y+15);ctx.lineTo(x+S+8,y+15)}else if(dir.x<0){ctx.moveTo(x,y+15);ctx.lineTo(x-8,y+15)}else if(dir.y<0){ctx.moveTo(x+15,y);ctx.lineTo(x+15,y-8)}else{ctx.moveTo(x+15,y+S);ctx.lineTo(x+15,y+S+8)}ctx.stroke()}
+function frogDraw(x,y){ctx.fillStyle="#49c95a";ctx.beginPath();ctx.ellipse(x+10,y+12,8,6,0,0,7);ctx.fill();ctx.fillStyle="#62dc69";ctx.beginPath();ctx.arc(x+10,y+10,7,0,7);ctx.fill();ctx.fillStyle="#8bea83";ctx.beginPath();ctx.arc(x+6,y+5,4,0,7);ctx.arc(x+14,y+5,4,0,7);ctx.fill();ctx.fillStyle="#111";ctx.beginPath();ctx.arc(x+6,y+5,1.7,0,7);ctx.arc(x+14,y+5,1.7,0,7);ctx.fill()}
+function ratDraw(x,y){ctx.strokeStyle="#d98c8c";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+3,y+13);ctx.quadraticCurveTo(x-4,y+18,x+1,y+19);ctx.stroke();ctx.fillStyle="#aaa";ctx.beginPath();ctx.ellipse(x+10,y+12,8,5,0,0,7);ctx.fill();ctx.beginPath();ctx.arc(x+16,y+9,5,0,7);ctx.fill();ctx.fillStyle="#e9a0a0";ctx.beginPath();ctx.arc(x+17,y+4,3,0,7);ctx.fill();ctx.fillStyle="#111";ctx.beginPath();ctx.arc(x+18,y+8,1.5,0,7);ctx.fill();ctx.fillStyle="#ed7777";ctx.beginPath();ctx.arc(x+21,y+10,2,0,7);ctx.fill()}
+document.addEventListener("keydown",e=>{let k=e.key.toLowerCase();if(k==="arrowup"||k==="w")setDir(0,-1);if(k==="arrowdown"||k==="s")setDir(0,1);if(k==="arrowleft"||k==="a")setDir(-1,0);if(k==="arrowright"||k==="d")setDir(1,0);if(k===" ")togglePause()});restart();
+</script></body></html>
